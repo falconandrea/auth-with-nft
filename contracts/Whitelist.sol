@@ -23,7 +23,8 @@ contract Whitelist {
   }
 
   function isInWhitelist(address _address) public view returns(bool) {
-    return addresses[_address];
+    bool result = addresses[_address];
+    return result;
   }
 
   modifier onlyOwner {
