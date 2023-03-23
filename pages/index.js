@@ -1,24 +1,27 @@
 import Head from 'next/head'
 import { ethers } from 'ethers'
 import { useEffect, useState } from 'react'
+import Whitelist from './../artifacts/contracts/Whitelist.sol/Whitelist.json'
 
 export default function Home () {
   const [currentAccount, setCurrentAccount] = useState('')
-  const [balance, setBalance] = useState('')
+  const [signer, setSigner] = useState()
   const [chainId, setChainId] = useState('')
-  const [errorLogin, setErrorLogin] = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
 
+  // Get truncated address
   const truncateAddress = (address) => {
     return address.slice(0, 6) + '...' + address.slice(-4)
   }
 
+  // Listeners on account change and network change
   useEffect(() => {
     window.ethereum.on('accountsChanged', function (accounts) {
       console.log('Change account on metamask', accounts[0])
       setCurrentAccount(accounts[0])
     })
 
-    window.ethereum.on('networkChanged', function (networkId) {
+    window.ethereum.on('chainChanged', function (networkId) {
       console.log('Change chain on metamask', networkId)
       setChainId(networkId)
       // It's a best practice reload page after change network
@@ -26,49 +29,53 @@ export default function Home () {
     })
   }, [])
 
+  // Listener on account and chain
   useEffect(() => {
-    setErrorLogin('')
+    setErrorMessage('')
 
     if (!currentAccount || !ethers.utils.isAddress(currentAccount)) {
       return
     }
     if (!window.ethereum) {
-      setErrorLogin('Please install MetaMask')
+      setErrorMessage('Please install MetaMask')
       return
     }
 
     const provider = new ethers.providers.Web3Provider(window.ethereum)
     provider.getNetwork().then((result) => {
-      console.log('chain ', result.chainId)
-      if (result.chainId !== 5) {
-        setErrorLogin('You have to switch on Goerli network')
+      if (result.chainId !== parseInt(process.env.NEXT_PUBLIC_NETWORK_CHAINID)) {
+        setErrorMessage(`You have to switch on ${process.env.NEXT_PUBLIC_NETWORK_CHAINNAME} Network`)
         return
       }
       setChainId(result.chainId)
     })
-
-    provider.getBalance(currentAccount).then((result) => {
-      console.log('balance ', ethers.utils.formatEther(result))
-      setBalance(ethers.utils.formatEther(result))
-    })
   }, [currentAccount, chainId])
 
-  const onClickConnect = () => {
-    // client side code
+  // Check if address is in whitelist
+  const requestWL = async () => {
+    const factory = new ethers.Contract(process.env.NEXT_PUBLIC_WHITELIST_ADDRESS, Whitelist.abi, signer)
+    try {
+      const result = await factory.isInWhitelist(currentAccount)
+      if (!result) setErrorMessage('You are not in whitelist')
+    } catch (error) {
+      setErrorMessage(error.error.message)
+    }
+  }
+
+  // Connect to wallet
+  const onClickConnect = async () => {
+    // Check MetaMask installed
     if (!window.ethereum) {
-      setErrorLogin('Please install MetaMask')
+      setErrorMessage('Please install MetaMask')
       return
     }
 
-    // we can do it using ethers.js
+    // Connect to account in MetaMask
     const provider = new ethers.providers.Web3Provider(window.ethereum)
-
-    // MetaMask requires requesting permission to connect users accounts
-    provider.send('eth_requestAccounts', [])
-      .then((accounts) => {
-        if (accounts.length > 0) setCurrentAccount(accounts[0])
-      })
-      .catch((e) => console.log(e))
+    await provider.send('eth_requestAccounts', [])
+    const signerAccount = await provider.getSigner()
+    setSigner(signerAccount)
+    setCurrentAccount(await signerAccount.getAddress())
   }
 
   return (
@@ -100,7 +107,30 @@ export default function Home () {
                         <form>
                           <div className='mb-12 pt-1 pb-1 text-center'>
                             {currentAccount
-                              ? <p>Welcome {truncateAddress(currentAccount)}!</p>
+                              ? (
+                                <div>
+                                  <p>Welcome {truncateAddress(currentAccount)}!</p>
+                                  <div className='flex items-center justify-between pb-6 mt-16'>
+                                    <p className='mb-0 mr-2'>Aren't you in Whitelist?</p>
+                                    <button
+                                      type='button'
+                                      onClick={requestWL}
+                                      className='inline-block rounded border-2 border-danger px-6 pt-2 pb-[6px] text-xs font-medium uppercase leading-normal text-danger transition duration-150 ease-in-out hover:border-danger-600 hover:bg-neutral-500 hover:bg-opacity-10 hover:text-danger-600 focus:border-danger-600 focus:text-danger-600 focus:outline-none focus:ring-0 active:border-danger-700 active:text-danger-700 dark:hover:bg-neutral-100 dark:hover:bg-opacity-10'
+                                    >
+                                      Request!
+                                    </button>
+                                  </div>
+                                  <div className='flex items-center justify-between pb-6 mt-2'>
+                                    <p className='mb-0 mr-2'>Don't have an NFT?</p>
+                                    <button
+                                      type='button'
+                                      className='inline-block rounded border-2 border-danger px-6 pt-2 pb-[6px] text-xs font-medium uppercase leading-normal text-danger transition duration-150 ease-in-out hover:border-danger-600 hover:bg-neutral-500 hover:bg-opacity-10 hover:text-danger-600 focus:border-danger-600 focus:text-danger-600 focus:outline-none focus:ring-0 active:border-danger-700 active:text-danger-700 dark:hover:bg-neutral-100 dark:hover:bg-opacity-10'
+                                    >
+                                      Mint one!
+                                    </button>
+                                  </div>
+                                </div>
+                                )
                               : (
                                 <button
                                   className='mb-3 inline-block w-full rounded px-6 pt-2.5 pb-2 text-xs font-medium uppercase leading-normal text-white shadow-[0_4px_9px_-4px_rgba(0,0,0,0.2)] transition duration-150 ease-in-out hover:shadow-[0_8px_9px_-4px_rgba(0,0,0,0.1),0_4px_18px_0_rgba(0,0,0,0.2)] focus:shadow-[0_8px_9px_-4px_rgba(0,0,0,0.1),0_4px_18px_0_rgba(0,0,0,0.2)] focus:outline-none focus:ring-0 active:shadow-[0_8px_9px_-4px_rgba(0,0,0,0.1),0_4px_18px_0_rgba(0,0,0,0.2)] backgroundGradiant'
@@ -111,18 +141,9 @@ export default function Home () {
                                 </button>
                                 )}
 
-                            {errorLogin !== '' && (
-                              <p className='text-red-500 text-xl mt-8'>{errorLogin}</p>
+                            {errorMessage !== '' && (
+                              <p className='text-red-500 text-xl mt-8'>{errorMessage}</p>
                             )}
-                          </div>
-                          <div className='flex items-center justify-between pb-6'>
-                            <p className='mb-0 mr-2'>Don't have an NFT?</p>
-                            <button
-                              type='button'
-                              className='inline-block rounded border-2 border-danger px-6 pt-2 pb-[6px] text-xs font-medium uppercase leading-normal text-danger transition duration-150 ease-in-out hover:border-danger-600 hover:bg-neutral-500 hover:bg-opacity-10 hover:text-danger-600 focus:border-danger-600 focus:text-danger-600 focus:outline-none focus:ring-0 active:border-danger-700 active:text-danger-700 dark:hover:bg-neutral-100 dark:hover:bg-opacity-10'
-                            >
-                              Mint one!
-                            </button>
                           </div>
                         </form>
                       </div>
