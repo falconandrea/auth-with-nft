@@ -17,6 +17,6 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 ## How to use Google Sheets for store addresses
 
 1. Create project and API on [Google Cloud Console](https://console.cloud.google.com/)
-2. Download the API Key in JSON format and insert the file in the root with the name `credentials.json`
-3. Create a Sheet file on your Drive and get the ID of the sheet from the URL
-4. The sheet file must have in Cell A1 written `Address`
+2. Download the API Key in JSON format and get private key and client email and put inside the `.env` file
+3. Create a Sheet file on your Drive and get the ID of the sheet from the URL and put inside the `.env` file
+4. The script read/write only in column `A`
