@@ -6,7 +6,7 @@ import { truncateAddress, checkNFT, checkWL, checkRequestWL, requestWL } from '@
 
 export default function Home () {
   const [currentAccount, setCurrentAccount] = useState('')
-  const [signer, setSigner] = useState('')
+  const [signer, setSigner] = useState(null)
   const [chainId, setChainId] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
   const [requestPending, setRequestPending] = useState(false)
@@ -16,6 +16,7 @@ export default function Home () {
   const [showButtons, setShowButtons] = useState(false)
 
   const setData = (type, data) => {
+    // console.log(`SET ${type}`, data)
     switch (type) {
       case 'error': setErrorMessage(data); break
       case 'account': setCurrentAccount(data); break
@@ -54,9 +55,7 @@ export default function Home () {
     const provider = new ethers.providers.Web3Provider(window.ethereum)
     await provider.send('eth_requestAccounts', [])
     const signerAccount = await provider.getSigner()
-    setData('signer', signerAccount)
     const address = await signerAccount.getAddress()
-    setData('account', address)
 
     const network = await provider.getNetwork()
     const networkId = network.chainId
@@ -88,11 +87,17 @@ export default function Home () {
       setData('buttons', false)
       setData('error', `You have to switch on ${process.env.NEXT_PUBLIC_NETWORK_CHAINNAME} Network`)
     }
+
+    return { signerAccount, address }
   }
 
   // Connect to wallet
   const onClickConnect = async () => {
-    loadData()
+    const { signerAccount, address } = await loadData()
+    setData('signer', signerAccount)
+    setData('address', address)
+    const result = await generateSignMessage(signerAccount, address)
+    console.log(result)
   }
 
   // Click on request to add to whitelist
@@ -103,6 +108,18 @@ export default function Home () {
     } else {
       setData('error', result.data)
     }
+  }
+
+  // This function returns signature and the original message
+  const generateSignMessage = async (signer, address) => {
+    const timestamp = Math.floor(Date.now() / 1000)
+    const message = `This request will not trigger a blockchain transaction or cost any gas fees.
+    Your authentication status will reset after 24 hours.
+    Address:${address}
+    Timestamp:${timestamp}
+    `
+    const signature = await signer.signMessage(message)
+    return [signature, message]
   }
 
   return (
