@@ -87,6 +87,8 @@ export default function Home () {
     const result = await requestWL(address)
     if (result.status === 'success') {
       setRequestPending(result.data)
+    } else {
+      setErrorMessage(result.data)
     }
   }
 
@@ -140,12 +142,18 @@ export default function Home () {
                                             <p>Yes</p>
                                             )
                                           : (
-                                            <button
-                                              type='button'
-                                              className='inline-block rounded border-2 border-danger px-6 pt-2 pb-[6px] text-xs font-medium uppercase leading-normal text-danger transition duration-150 ease-in-out hover:border-danger-600 hover:bg-neutral-500 hover:bg-opacity-10 hover:text-danger-600 focus:border-danger-600 focus:text-danger-600 focus:outline-none focus:ring-0 active:border-danger-700 active:text-danger-700 dark:hover:bg-neutral-100 dark:hover:bg-opacity-10'
-                                            >
-                                              Mint one!
-                                            </button>
+                                              inWhitelist
+                                                ? (
+                                                  <button
+                                                    type='button'
+                                                    className='inline-block rounded border-2 border-danger px-6 pt-2 pb-[6px] text-xs font-medium uppercase leading-normal text-danger transition duration-150 ease-in-out hover:border-danger-600 hover:bg-neutral-500 hover:bg-opacity-10 hover:text-danger-600 focus:border-danger-600 focus:text-danger-600 focus:outline-none focus:ring-0 active:border-danger-700 active:text-danger-700 dark:hover:bg-neutral-100 dark:hover:bg-opacity-10'
+                                                  >
+                                                    Mint one!
+                                                  </button>
+                                                  )
+                                                : (
+                                                  <p>You are not in whitelist</p>
+                                                  )
                                             )}
                                       </div>
 
@@ -156,13 +164,7 @@ export default function Home () {
                                             <p>Yes</p>
                                             )
                                           : (
-                                            <button
-                                              type='button'
-                                              onClick={() => requestWL(currentAccount)}
-                                              className='inline-block rounded border-2 border-danger px-6 pt-2 pb-[6px] text-xs font-medium uppercase leading-normal text-danger transition duration-150 ease-in-out hover:border-danger-600 hover:bg-neutral-500 hover:bg-opacity-10 hover:text-danger-600 focus:border-danger-600 focus:text-danger-600 focus:outline-none focus:ring-0 active:border-danger-700 active:text-danger-700 dark:hover:bg-neutral-100 dark:hover:bg-opacity-10'
-                                            >
-                                              Request!
-                                            </button>
+                                            <p>No</p>
                                             )}
                                       </div>
 

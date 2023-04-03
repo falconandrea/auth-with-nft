@@ -38,15 +38,19 @@ const checkRequestWL = async (address) => {
 
 // Request access to whitelist
 const requestWL = async (address) => {
-  let res = await fetch('api/whitelist/request', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ address })
-  })
-  res = await res.json()
-  return { status: 'success', data: res.result }
+  try {
+    let res = await fetch('api/whitelist/request', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ address })
+    })
+    res = await res.json()
+    return { status: 'success', data: res.result }
+  } catch (error) {
+    return { status: 'error', data: error }
+  }
 }
 
 module.exports = {
