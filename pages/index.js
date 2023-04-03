@@ -15,22 +15,36 @@ export default function Home () {
   const [showLoading, setShowLoading] = useState(false)
   const [showButtons, setShowButtons] = useState(false)
 
+  const setData = (type, data) => {
+    switch (type) {
+      case 'error': setErrorMessage(data); break
+      case 'account': setCurrentAccount(data); break
+      case 'chain': setChainId(data); break
+      case 'signer': setSigner(data); break
+      case 'buttons': setShowButtons(data); break
+      case 'loading': setShowLoading(data); break
+      case 'nft': setNft(data); break
+      case 'whitelist': setInWhitelist(data); break
+      case 'request': setRequestPending(data); break
+    }
+  }
+
   // Listeners on account change and network change
   useEffect(() => {
-    setErrorMessage('')
+    setData('error', '')
 
     if (!window.ethereum) {
-      setErrorMessage('Please install MetaMask')
+      setData('error', 'Please install MetaMask')
       return
     }
 
     window.ethereum.on('accountsChanged', function (accounts) {
-      setCurrentAccount(accounts[0])
+      setData('account', accounts[0])
       window.location.reload()
     })
 
     window.ethereum.on('chainChanged', function (networkId) {
-      setChainId(networkId)
+      setData('chain', networkId)
       window.location.reload()
     })
   }, [])
@@ -40,40 +54,39 @@ export default function Home () {
     const provider = new ethers.providers.Web3Provider(window.ethereum)
     await provider.send('eth_requestAccounts', [])
     const signerAccount = await provider.getSigner()
-    setSigner(signerAccount)
+    setData('signer', signerAccount)
     const address = await signerAccount.getAddress()
-    setCurrentAccount(address)
+    setData('account', address)
 
     const network = await provider.getNetwork()
     const networkId = network.chainId
-    console.log('networkId', networkId)
 
     if (networkId === parseInt(process.env.NEXT_PUBLIC_NETWORK_CHAINID)) {
-      setShowButtons(true)
-      setChainId(networkId)
+      setData('buttons', true)
+      setData('chain', networkId)
 
-      setShowLoading(true)
+      setData('loading', true)
       let result = await checkNFT()
       if (result.status === 'success') {
-        setNft(result.data)
+        setData('nft', result.data)
       }
 
       const factory = new ethers.Contract(process.env.NEXT_PUBLIC_WHITELIST_ADDRESS, Whitelist.abi, signerAccount)
       result = await checkWL(factory, address)
       if (result.status === 'success') {
-        setInWhitelist(result.data)
+        setData('whitelist', result.data)
       } else {
-        setErrorMessage(result.data)
+        setData('error', result.data)
       }
 
       result = await checkRequestWL(address)
       if (result.status === 'success') {
-        setRequestPending(result.data)
+        setData('request', result.data)
       }
-      setShowLoading(false)
+      setData('loading', false)
     } else {
-      setShowButtons(false)
-      setErrorMessage(`You have to switch on ${process.env.NEXT_PUBLIC_NETWORK_CHAINNAME} Network`)
+      setData('buttons', false)
+      setData('error', `You have to switch on ${process.env.NEXT_PUBLIC_NETWORK_CHAINNAME} Network`)
     }
   }
 
@@ -86,9 +99,9 @@ export default function Home () {
   const onClickRequestWL = async (address) => {
     const result = await requestWL(address)
     if (result.status === 'success') {
-      setRequestPending(result.data)
+      setData('request', result.data)
     } else {
-      setErrorMessage(result.data)
+      setData('error', result.data)
     }
   }
 
