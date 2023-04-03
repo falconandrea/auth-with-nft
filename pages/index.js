@@ -2,130 +2,92 @@ import Head from 'next/head'
 import { ethers } from 'ethers'
 import { useEffect, useState } from 'react'
 import Whitelist from './../artifacts/contracts/Whitelist.sol/Whitelist.json'
+import { truncateAddress, checkNFT, checkWL, checkRequestWL, requestWL } from '@/utils/functions'
 
 export default function Home () {
   const [currentAccount, setCurrentAccount] = useState('')
-  const [signer, setSigner] = useState()
+  const [signer, setSigner] = useState('')
   const [chainId, setChainId] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
   const [requestPending, setRequestPending] = useState(false)
   const [nft, setNft] = useState(null)
   const [inWhitelist, setInWhitelist] = useState(false)
   const [showLoading, setShowLoading] = useState(false)
-
-  // Get truncated address
-  const truncateAddress = (address) => {
-    return address.slice(0, 6) + '...' + address.slice(-4)
-  }
+  const [showButtons, setShowButtons] = useState(false)
 
   // Listeners on account change and network change
   useEffect(() => {
+    setErrorMessage('')
+
+    if (!window.ethereum) {
+      setErrorMessage('Please install MetaMask')
+      return
+    }
+
     window.ethereum.on('accountsChanged', function (accounts) {
-      console.log('Change account on metamask', accounts[0])
       setCurrentAccount(accounts[0])
+      window.location.reload()
     })
 
     window.ethereum.on('chainChanged', function (networkId) {
-      console.log('Change chain on metamask', networkId)
       setChainId(networkId)
-      // It's a best practice reload page after change network
       window.location.reload()
     })
   }, [])
 
-  // Listener on account and chain
-  useEffect(() => {
-    setErrorMessage('')
-
-    if (!currentAccount || !ethers.utils.isAddress(currentAccount)) {
-      return
-    }
-    if (!window.ethereum) {
-      setErrorMessage('Please install MetaMask')
-      return
-    }
-
-    const provider = new ethers.providers.Web3Provider(window.ethereum)
-    provider.getNetwork().then((result) => {
-      if (result.chainId !== parseInt(process.env.NEXT_PUBLIC_NETWORK_CHAINID)) {
-        setErrorMessage(`You have to switch on ${process.env.NEXT_PUBLIC_NETWORK_CHAINNAME} Network`)
-        return
-      }
-      setChainId(result.chainId)
-    })
-
-    checkAssets(currentAccount)
-  }, [currentAccount, chainId])
-
-  const checkAssets = async (address) => {
-    setShowLoading(true)
-    await checkNFT()
-    await checkWL()
-    await checkRequestWL(address)
-    setShowLoading(false)
-  }
-
-  // Check if address have the NFT
-  const checkNFT = async () => {
-    console.log('have nft?', false)
-    setNft(false)
-    return false
-  }
-
-  // Check if address is in whitelist
-  const checkWL = async () => {
-    const factory = new ethers.Contract(process.env.NEXT_PUBLIC_WHITELIST_ADDRESS, Whitelist.abi, signer)
-    try {
-      const result = await factory.isInWhitelist(currentAccount)
-      console.log('whitelist?', result)
-      setInWhitelist(result)
-    } catch (error) {
-      setErrorMessage(error.error.message)
-    }
-  }
-
-  // Check if address have request to access to whitelist
-  const checkRequestWL = async (address) => {
-    let res = await fetch('api/whitelist/check', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ address })
-    })
-    res = await res.json()
-    console.log('have request whitelist?', res.result)
-    setRequestPending(res.result)
-  }
-
-  // Request access to whitelist
-  const requestWL = async (address) => {
-    let res = await fetch('api/whitelist/request', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ address })
-    })
-    res = await res.json()
-    setRequestPending(res.result)
-  }
-
-  // Connect to wallet
-  const onClickConnect = async () => {
-    // Check MetaMask installed
-    if (!window.ethereum) {
-      setErrorMessage('Please install MetaMask')
-      return
-    }
-
+  const loadData = async () => {
     // Connect to account in MetaMask
     const provider = new ethers.providers.Web3Provider(window.ethereum)
     await provider.send('eth_requestAccounts', [])
     const signerAccount = await provider.getSigner()
-    const address = await signerAccount.getAddress()
     setSigner(signerAccount)
+    const address = await signerAccount.getAddress()
     setCurrentAccount(address)
+
+    const network = await provider.getNetwork()
+    const networkId = network.chainId
+    console.log('networkId', networkId)
+
+    if (networkId === parseInt(process.env.NEXT_PUBLIC_NETWORK_CHAINID)) {
+      setShowButtons(true)
+      setChainId(networkId)
+
+      setShowLoading(true)
+      let result = await checkNFT()
+      if (result.status === 'success') {
+        setNft(result.data)
+      }
+
+      const factory = new ethers.Contract(process.env.NEXT_PUBLIC_WHITELIST_ADDRESS, Whitelist.abi, signerAccount)
+      result = await checkWL(factory, address)
+      if (result.status === 'success') {
+        setInWhitelist(result.data)
+      } else {
+        setErrorMessage(result.data)
+      }
+
+      result = await checkRequestWL(address)
+      if (result.status === 'success') {
+        setRequestPending(result.data)
+      }
+      setShowLoading(false)
+    } else {
+      setShowButtons(false)
+      setErrorMessage(`You have to switch on ${process.env.NEXT_PUBLIC_NETWORK_CHAINNAME} Network`)
+    }
+  }
+
+  // Connect to wallet
+  const onClickConnect = async () => {
+    loadData()
+  }
+
+  // Click on request to add to whitelist
+  const onClickRequestWL = async (address) => {
+    const result = await requestWL(address)
+    if (result.status === 'success') {
+      setRequestPending(result.data)
+    }
   }
 
   return (
@@ -169,55 +131,59 @@ export default function Home () {
                                 <div>
                                   <p className='mb-16'>Welcome {truncateAddress(currentAccount)}!</p>
 
-                                  <div className='flex items-center justify-between pb-6 mt-2'>
-                                    <p>Do you have the NFT?</p>
-                                    {nft
-                                      ? (
-                                        <p>Yes</p>
-                                        )
-                                      : (
-                                        <button
-                                          type='button'
-                                          className='inline-block rounded border-2 border-danger px-6 pt-2 pb-[6px] text-xs font-medium uppercase leading-normal text-danger transition duration-150 ease-in-out hover:border-danger-600 hover:bg-neutral-500 hover:bg-opacity-10 hover:text-danger-600 focus:border-danger-600 focus:text-danger-600 focus:outline-none focus:ring-0 active:border-danger-700 active:text-danger-700 dark:hover:bg-neutral-100 dark:hover:bg-opacity-10'
-                                        >
-                                          Mint one!
-                                        </button>
-                                        )}
-                                  </div>
+                                  {showButtons && (
+                                    <div>
+                                      <div className='flex items-center justify-between pb-6 mt-2'>
+                                        <p>Do you have the NFT?</p>
+                                        {nft
+                                          ? (
+                                            <p>Yes</p>
+                                            )
+                                          : (
+                                            <button
+                                              type='button'
+                                              className='inline-block rounded border-2 border-danger px-6 pt-2 pb-[6px] text-xs font-medium uppercase leading-normal text-danger transition duration-150 ease-in-out hover:border-danger-600 hover:bg-neutral-500 hover:bg-opacity-10 hover:text-danger-600 focus:border-danger-600 focus:text-danger-600 focus:outline-none focus:ring-0 active:border-danger-700 active:text-danger-700 dark:hover:bg-neutral-100 dark:hover:bg-opacity-10'
+                                            >
+                                              Mint one!
+                                            </button>
+                                            )}
+                                      </div>
 
-                                  <div className='flex items-center justify-between pb-6 mt-2'>
-                                    <p>Are you in Whitelist?</p>
-                                    {inWhitelist
-                                      ? (
-                                        <p>Yes</p>
-                                        )
-                                      : (
-                                        <button
-                                          type='button'
-                                          onClick={() => requestWL(currentAccount)}
-                                          className='inline-block rounded border-2 border-danger px-6 pt-2 pb-[6px] text-xs font-medium uppercase leading-normal text-danger transition duration-150 ease-in-out hover:border-danger-600 hover:bg-neutral-500 hover:bg-opacity-10 hover:text-danger-600 focus:border-danger-600 focus:text-danger-600 focus:outline-none focus:ring-0 active:border-danger-700 active:text-danger-700 dark:hover:bg-neutral-100 dark:hover:bg-opacity-10'
-                                        >
-                                          Request!
-                                        </button>
-                                        )}
-                                  </div>
+                                      <div className='flex items-center justify-between pb-6 mt-2'>
+                                        <p>Are you in Whitelist?</p>
+                                        {inWhitelist
+                                          ? (
+                                            <p>Yes</p>
+                                            )
+                                          : (
+                                            <button
+                                              type='button'
+                                              onClick={() => requestWL(currentAccount)}
+                                              className='inline-block rounded border-2 border-danger px-6 pt-2 pb-[6px] text-xs font-medium uppercase leading-normal text-danger transition duration-150 ease-in-out hover:border-danger-600 hover:bg-neutral-500 hover:bg-opacity-10 hover:text-danger-600 focus:border-danger-600 focus:text-danger-600 focus:outline-none focus:ring-0 active:border-danger-700 active:text-danger-700 dark:hover:bg-neutral-100 dark:hover:bg-opacity-10'
+                                            >
+                                              Request!
+                                            </button>
+                                            )}
+                                      </div>
 
-                                  <div className='flex items-center justify-between pb-6 mt-2'>
-                                    <p>Have you request to access to Whitelist?</p>
-                                    {requestPending
-                                      ? (
-                                        <p>Yes</p>
-                                        )
-                                      : (
-                                        <button
-                                          type='button'
-                                          onClick={() => requestWL(currentAccount)}
-                                          className='inline-block rounded border-2 border-danger px-6 pt-2 pb-[6px] text-xs font-medium uppercase leading-normal text-danger transition duration-150 ease-in-out hover:border-danger-600 hover:bg-neutral-500 hover:bg-opacity-10 hover:text-danger-600 focus:border-danger-600 focus:text-danger-600 focus:outline-none focus:ring-0 active:border-danger-700 active:text-danger-700 dark:hover:bg-neutral-100 dark:hover:bg-opacity-10'
-                                        >
-                                          Request!
-                                        </button>
-                                        )}
-                                  </div>
+                                      <div className='flex items-center justify-between pb-6 mt-2'>
+                                        <p>Have you request to access to Whitelist?</p>
+                                        {requestPending
+                                          ? (
+                                            <p>Yes</p>
+                                            )
+                                          : (
+                                            <button
+                                              type='button'
+                                              onClick={() => onClickRequestWL(currentAccount)}
+                                              className='inline-block rounded border-2 border-danger px-6 pt-2 pb-[6px] text-xs font-medium uppercase leading-normal text-danger transition duration-150 ease-in-out hover:border-danger-600 hover:bg-neutral-500 hover:bg-opacity-10 hover:text-danger-600 focus:border-danger-600 focus:text-danger-600 focus:outline-none focus:ring-0 active:border-danger-700 active:text-danger-700 dark:hover:bg-neutral-100 dark:hover:bg-opacity-10'
+                                            >
+                                              Request!
+                                            </button>
+                                            )}
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                                 )
                               : (
