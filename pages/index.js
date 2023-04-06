@@ -2,7 +2,7 @@ import Head from 'next/head'
 import { ethers } from 'ethers'
 import { useEffect, useState } from 'react'
 import Whitelist from './../artifacts/contracts/Whitelist.sol/Whitelist.json'
-import { truncateAddress, checkNFT, checkWL, checkRequestWL, requestWL } from '@/utils/functions'
+import { truncateAddress, checkNFT, checkWL, checkRequestWL, requestWL, generateSignMessage, loginJWT, checkJWT } from '@/utils/functions'
 
 export default function Home () {
   const [currentAccount, setCurrentAccount] = useState('')
@@ -96,8 +96,29 @@ export default function Home () {
     const { signerAccount, address } = await loadData()
     setData('signer', signerAccount)
     setData('address', address)
-    const result = await generateSignMessage(signerAccount, address)
-    console.log(result)
+    const jwt = localStorage.getItem('jwt')
+    if (!jwt) {
+      // Generate message
+      const { signature, message } = await generateSignMessage(signerAccount, address)
+      // Check login
+      try {
+        const result = await loginJWT(signature, message)
+        if (result.status === 'success') {
+          localStorage.setItem('jwt', result.data)
+          // JWT valid, to to the protected page
+        } else {
+          setData('error', result.data)
+        }
+      } catch (error) {
+        setData('error', error.message)
+      }
+    } else if (!(await checkJWT(jwt, process.env.JWT_SECRET))) {
+      console.log('asd')
+      setData('error', 'Wrong login data, reload page and retry')
+      localStorage.removeItem('jwt')
+    } else {
+      // JWT valid, to to the protected page
+    }
   }
 
   // Click on request to add to whitelist
@@ -108,18 +129,6 @@ export default function Home () {
     } else {
       setData('error', result.data)
     }
-  }
-
-  // This function returns signature and the original message
-  const generateSignMessage = async (signer, address) => {
-    const timestamp = Math.floor(Date.now() / 1000)
-    const message = `This request will not trigger a blockchain transaction or cost any gas fees.
-    Your authentication status will reset after 24 hours.
-    Address:${address}
-    Timestamp:${timestamp}
-    `
-    const signature = await signer.signMessage(message)
-    return [signature, message]
   }
 
   return (

@@ -1,4 +1,3 @@
-
 // Get truncated address
 const truncateAddress = (address) => {
   return address.slice(0, 6) + '...' + address.slice(-4)
@@ -31,6 +30,10 @@ const checkRequestWL = async (address) => {
     },
     body: JSON.stringify({ address })
   })
+  if (!res.ok) {
+    res = await res.json()
+    return { status: 'error', data: res.message }
+  }
   res = await res.json()
   console.log('checkRequestWL', res.result)
   return { status: 'success', data: res.result }
@@ -46,6 +49,10 @@ const requestWL = async (address) => {
       },
       body: JSON.stringify({ address })
     })
+    if (!res.ok) {
+      res = await res.json()
+      return { status: 'error', data: res.message }
+    }
     res = await res.json()
     return { status: 'success', data: res.result }
   } catch (error) {
@@ -53,10 +60,59 @@ const requestWL = async (address) => {
   }
 }
 
+// This function returns signature and the original message
+const generateSignMessage = async (signer, address) => {
+  const timestamp = Math.floor(Date.now() / 1000)
+  const message = `This request will not trigger a blockchain transaction or cost any gas fees.
+    Your authentication status will reset after 24 hours.
+    Address:${address}
+    Timestamp:${timestamp}
+    `
+  const signature = await signer.signMessage(message)
+  return { signature, message }
+}
+
+// Login with JWT
+const loginJWT = async (signature, message) => {
+  try {
+    let res = await fetch('api/auth/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ signature, message })
+    })
+    if (!res.ok) {
+      res = await res.json()
+      return { status: 'error', data: res.message }
+    }
+    res = await res.json()
+    return { status: 'success', data: res.jwt }
+  } catch (error) {
+    return { status: 'error', data: error }
+  }
+}
+
+// Check JWT
+const checkJWT = async (jwtData) => {
+  let res = await fetch('api/auth/checkJWT', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ jwtData })
+  })
+  res = await res.json()
+  return res.valid
+}
+
 module.exports = {
   truncateAddress,
   checkNFT,
   checkWL,
   checkRequestWL,
-  requestWL
+  requestWL,
+  generateSignMessage,
+  loginJWT,
+  checkJWT
 }
