@@ -6,9 +6,16 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/Base64.sol";
 
+interface WhitelistInterface {
+  function isInWhitelist(address _address) external view returns(bool);
+}
+
 contract Login is ERC721URIStorage {
   using Counters for Counters.Counter;
   Counters.Counter private _tokenIds;
+
+  address owner;
+  WhitelistInterface whitelistContract;
 
   string baseSvg =
     "<svg xmlns='http://www.w3.org/2000/svg' preserveAspectRatio='xMinYMin meet' viewBox='0 0 350 350'><style>.base { fill: white; font-family: sans-serif; font-size: 24px; }</style><rect width='100%' height='100%' fill='black' /><text x='50%' y='40%' class='base' dominant-baseline='middle' text-anchor='middle'>Token for Login</text><text x='50%' y='60%' class='base' dominant-baseline='middle' text-anchor='middle'>";
@@ -16,12 +23,20 @@ contract Login is ERC721URIStorage {
   uint256 maxSupply = 1000;
   event NFTMinted(address sender, uint256 tokenId);
 
-  constructor() ERC721("Login Token", "LGTKN") {}
+  constructor() ERC721("Login Token", "LGTKN") {
+    owner = msg.sender;
+  }
+
+  function setWhitelistAddress(address whitelist) public {
+    require(address(msg.sender) == owner, 'Only owner can change whitelist address');
+    whitelistContract = WhitelistInterface(whitelist);
+  }
 
   function mintLogin() public {
     uint256 newItemId = _tokenIds.current();
     require(newItemId < maxSupply, "Max supply has been reached");
     require(balanceOf(msg.sender) == 0, "Max Mint per wallet reached");
+    require(whitelistContract.isInWhitelist(msg.sender), 'You are not in whitelist');
 
     string memory svgText = string(
         abi.encodePacked("Member number #", Strings.toString(newItemId + 1))
