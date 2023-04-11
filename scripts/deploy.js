@@ -9,6 +9,15 @@ async function main () {
   console.log(
     `Whitelist deployed to ${whitelist.address}`
   )
+
+  const Login = await hre.ethers.getContractFactory('Login')
+  const login = await Login.deploy()
+
+  await login.deployed()
+
+  console.log(
+   `Login deployed to ${login.address}`
+  )
 }
 
 main().catch((error) => {

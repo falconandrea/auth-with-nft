@@ -4,9 +4,15 @@ const truncateAddress = (address) => {
 }
 
 // Check if address have the NFT
-const checkNFT = async () => {
-  console.log('checkNFT', false)
-  return { status: 'success', data: false }
+const checkNFT = async (factory, account) => {
+  try {
+    const result = await factory.balanceOf(account)
+    console.log('checkNFT', parseInt(result))
+    return { status: 'success', data: parseInt(result) > 0 }
+  } catch (error) {
+    console.log('checkNFT', error)
+    return { status: 'error', data: error.error.message }
+  }
 }
 
 // Check if address is in whitelist
@@ -95,15 +101,22 @@ const loginJWT = async (signature, message) => {
 
 // Check JWT
 const checkJWT = async (jwtData) => {
-  let res = await fetch('api/auth/checkJWT', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ jwtData })
-  })
-  res = await res.json()
-  return res.valid
+  try {
+    let res = await fetch('api/auth/checkJWT', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ jwtData })
+    })
+    if (!res.ok) {
+      return false
+    }
+    res = await res.json()
+    return res.valid
+  } catch (error) {
+    return false
+  }
 }
 
 module.exports = {

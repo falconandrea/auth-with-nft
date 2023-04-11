@@ -9,5 +9,10 @@ module.exports = {
       url: process.env.NETWORK_RPC,
       accounts: [process.env.PRIVATE_KEY]
     }
+  },
+  etherscan: {
+    apiKey: {
+      goerli: process.env.ETHERSCAN_KEY
+    }
   }
 }

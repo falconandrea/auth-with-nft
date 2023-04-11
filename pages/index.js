@@ -2,6 +2,7 @@ import Head from 'next/head'
 import { ethers } from 'ethers'
 import { useEffect, useState } from 'react'
 import Whitelist from './../artifacts/contracts/Whitelist.sol/Whitelist.json'
+import Login from './../artifacts/contracts/Login.sol/Login.json'
 import { truncateAddress, checkNFT, checkWL, checkRequestWL, requestWL, generateSignMessage, loginJWT, checkJWT } from '@/utils/functions'
 
 export default function Home () {
@@ -10,7 +11,7 @@ export default function Home () {
   const [chainId, setChainId] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
   const [requestPending, setRequestPending] = useState(false)
-  const [nft, setNft] = useState(null)
+  const [nft, setNft] = useState(0)
   const [inWhitelist, setInWhitelist] = useState(false)
   const [showLoading, setShowLoading] = useState(false)
   const [showButtons, setShowButtons] = useState(false)
@@ -56,26 +57,26 @@ export default function Home () {
     await provider.send('eth_requestAccounts', [])
     const signerAccount = await provider.getSigner()
     const address = await signerAccount.getAddress()
-
-    const network = await provider.getNetwork()
-    const networkId = network.chainId
+    let error = ''
+    const networkId = provider.network.chainId
 
     if (networkId === parseInt(process.env.NEXT_PUBLIC_NETWORK_CHAINID)) {
       setData('buttons', true)
       setData('chain', networkId)
 
       setData('loading', true)
-      let result = await checkNFT()
+      let factory = new ethers.Contract(process.env.NEXT_PUBLIC_LOGIN_NFT_ADDRESS, Login.abi, signerAccount)
+      let result = await checkNFT(factory, address)
       if (result.status === 'success') {
         setData('nft', result.data)
       }
 
-      const factory = new ethers.Contract(process.env.NEXT_PUBLIC_WHITELIST_ADDRESS, Whitelist.abi, signerAccount)
+      factory = new ethers.Contract(process.env.NEXT_PUBLIC_WHITELIST_ADDRESS, Whitelist.abi, signerAccount)
       result = await checkWL(factory, address)
       if (result.status === 'success') {
         setData('whitelist', result.data)
       } else {
-        setData('error', result.data)
+        error = result.data
       }
 
       result = await checkRequestWL(address)
@@ -85,39 +86,43 @@ export default function Home () {
       setData('loading', false)
     } else {
       setData('buttons', false)
-      setData('error', `You have to switch on ${process.env.NEXT_PUBLIC_NETWORK_CHAINNAME} Network`)
+      error = `You have to switch on ${process.env.NEXT_PUBLIC_NETWORK_CHAINNAME} Network`
     }
+    setData('error', error)
 
-    return { signerAccount, address }
+    return { signerAccount, address, error }
   }
 
   // Connect to wallet
   const onClickConnect = async () => {
-    const { signerAccount, address } = await loadData()
-    setData('signer', signerAccount)
-    setData('address', address)
-    const jwt = localStorage.getItem('jwt')
-    if (!jwt) {
-      // Generate message
-      const { signature, message } = await generateSignMessage(signerAccount, address)
-      // Check login
-      try {
-        const result = await loginJWT(signature, message)
-        if (result.status === 'success') {
-          localStorage.setItem('jwt', result.data)
-          // JWT valid, to to the protected page
-        } else {
-          setData('error', result.data)
+    const { signerAccount, address, error } = await loadData()
+    if (!error) {
+      const jwt = localStorage.getItem('jwt')
+      if (!jwt) {
+        // Generate message
+        const { signature, message } = await generateSignMessage(signerAccount, address)
+        // Check login
+        try {
+          const result = await loginJWT(signature, message)
+          if (result.status === 'success') {
+            localStorage.setItem('jwt', result.data)
+            // JWT valid, to to the buttons page
+            setData('signer', signerAccount)
+            setData('account', address)
+          } else {
+            setData('error', result.data)
+          }
+        } catch (error) {
+          setData('error', error.message)
         }
-      } catch (error) {
-        setData('error', error.message)
+      } else if (!(await checkJWT(jwt, process.env.JWT_SECRET))) {
+        setData('error', 'Wrong login data, reload page and retry')
+        localStorage.removeItem('jwt')
+      } else {
+        // JWT valid, to to the buttons page
+        setData('signer', signerAccount)
+        setData('account', address)
       }
-    } else if (!(await checkJWT(jwt, process.env.JWT_SECRET))) {
-      console.log('asd')
-      setData('error', 'Wrong login data, reload page and retry')
-      localStorage.removeItem('jwt')
-    } else {
-      // JWT valid, to to the protected page
     }
   }
 
@@ -128,6 +133,21 @@ export default function Home () {
       setData('request', result.data)
     } else {
       setData('error', result.data)
+    }
+  }
+
+  // Click for mint a NFT
+  const onClickMint = async () => {
+    try {
+      const factory = new ethers.Contract(process.env.NEXT_PUBLIC_WHITELIST_ADDRESS, Login.abi, signer)
+      const provider = new ethers.providers.Web3Provider(window.ethereum)
+      const gasPrice = await provider.getGasPrice()
+      const result = await factory.mintLogin({ gasPrice: parseFloat(gasPrice), gasLimit: 1000000 })
+      console.log(result)
+      // TODO event listener on mint, with add/remove loading
+    } catch (error) {
+      console.log(error)
+      setData('error', 'Problem during mint')
     }
   }
 
@@ -176,7 +196,7 @@ export default function Home () {
                                     <div>
                                       <div className='flex items-center justify-between pb-6 mt-2'>
                                         <p>Do you have the NFT?</p>
-                                        {nft
+                                        {inWhitelist && nft > 0
                                           ? (
                                             <p>Yes</p>
                                             )
@@ -185,6 +205,7 @@ export default function Home () {
                                                 ? (
                                                   <button
                                                     type='button'
+                                                    onClick={onClickMint}
                                                     className='inline-block rounded border-2 border-danger px-6 pt-2 pb-[6px] text-xs font-medium uppercase leading-normal text-danger transition duration-150 ease-in-out hover:border-danger-600 hover:bg-neutral-500 hover:bg-opacity-10 hover:text-danger-600 focus:border-danger-600 focus:text-danger-600 focus:outline-none focus:ring-0 active:border-danger-700 active:text-danger-700 dark:hover:bg-neutral-100 dark:hover:bg-opacity-10'
                                                   >
                                                     Mint one!
