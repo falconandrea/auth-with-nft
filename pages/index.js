@@ -10,6 +10,7 @@ export default function Home () {
   const [signer, setSigner] = useState(null)
   const [chainId, setChainId] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
   const [requestPending, setRequestPending] = useState(false)
   const [nft, setNft] = useState(0)
   const [inWhitelist, setInWhitelist] = useState(false)
@@ -19,7 +20,16 @@ export default function Home () {
   const setData = (type, data) => {
     // console.log(`SET ${type}`, data)
     switch (type) {
-      case 'error': setErrorMessage(data); break
+      case 'error': {
+        setErrorMessage(data)
+        setSuccessMessage('')
+        break
+      }
+      case 'success': {
+        setSuccessMessage(data)
+        setErrorMessage('')
+        break
+      }
       case 'account': setCurrentAccount(data); break
       case 'chain': setChainId(data); break
       case 'signer': setSigner(data); break
@@ -139,12 +149,14 @@ export default function Home () {
   // Click for mint a NFT
   const onClickMint = async () => {
     try {
-      const factory = new ethers.Contract(process.env.NEXT_PUBLIC_WHITELIST_ADDRESS, Login.abi, signer)
-      const provider = new ethers.providers.Web3Provider(window.ethereum)
-      const gasPrice = await provider.getGasPrice()
-      const result = await factory.mintLogin({ gasPrice: parseFloat(gasPrice), gasLimit: 1000000 })
-      console.log(result)
-      // TODO event listener on mint, with add/remove loading
+      const factory = new ethers.Contract(process.env.NEXT_PUBLIC_LOGIN_NFT_ADDRESS, Login.abi, signer)
+      setData('loading', true)
+      await factory.mintLogin()
+      factory.on('NFTMinted', (address, itemId, event) => {
+        setData('loading', false)
+        setData('nft', 1)
+        setData('success', 'NFT minted successfully')
+      })
     } catch (error) {
       console.log(error)
       setData('error', 'Problem during mint')
@@ -260,6 +272,9 @@ export default function Home () {
 
                             {errorMessage !== '' && (
                               <p className='text-red-500 text-xl mt-8'>{errorMessage}</p>
+                            )}
+                            {successMessage !== '' && (
+                              <p className='text-green-500 text-xl mt-8'>{successMessage}</p>
                             )}
                           </div>
                         </form>
