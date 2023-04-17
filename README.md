@@ -63,3 +63,17 @@ Get the contract address and add them to `.env` file (`NEXT_PUBLIC_WHITELIST_ADD
 npx hardhat verify --network goerli [NEXT_PUBLIC_WHITELIST_ADDRESS]
 npx hardhat verify --network goerli [NEXT_PUBLIC_LOGIN_NFT_ADDRESS]
 ```
+
+### Set the Whitelist address on the Login NFT contract
+
+You have to insert the Whitelist contract address inside the Login NFT contract.
+
+You can do this with the write function `setWhitelistAddress` through Goerli Etherscan connecting to the Login NFT contract address.
+
+### Run tests
+
+You can run the tests on the command:
+
+```bash
+npx hardhat test
+```
