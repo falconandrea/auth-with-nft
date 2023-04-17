@@ -1,8 +1,8 @@
 import Head from 'next/head'
 import { ethers } from 'ethers'
 import { useEffect, useState } from 'react'
-import Whitelist from './../artifacts/contracts/Whitelist.sol/Whitelist.json'
-import Login from './../artifacts/contracts/Login.sol/Login.json'
+import Whitelist from '../artifacts/contracts/Whitelist.sol/Whitelist.json'
+import Login from '../artifacts/contracts/Login.sol/Login.json'
 import { truncateAddress, checkNFT, checkWL, checkRequestWL, requestWL, generateSignMessage, loginJWT, checkJWT } from '@/utils/functions'
 
 export default function Home () {
@@ -297,7 +297,7 @@ export default function Home () {
               </div>
             </div>
           </div>
-          <p class='text-center'><small>Created by <a class='underline' href='https://github.com/falconandrea/auth-with-nft' title='' target='_blank' rel='noreferrer'>Andrea Falcon</a> - 2023</small></p>
+          <p className='text-center'><small>Created by <a className='underline' href='https://github.com/falconandrea/auth-with-nft' title='' target='_blank' rel='noreferrer'>Andrea Falcon</a> - 2023</small></p>
         </section>
       </main>
     </>
