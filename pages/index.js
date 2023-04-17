@@ -297,6 +297,7 @@ export default function Home () {
               </div>
             </div>
           </div>
+          <p class='text-center'><small>Created by <a class='underline' href='https://github.com/falconandrea/auth-with-nft' title='' target='_blank' rel='noreferrer'>Andrea Falcon</a> - 2023</small></p>
         </section>
       </main>
     </>
