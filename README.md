@@ -2,16 +2,16 @@
 
 ## Info about the project
 
-This is my Final Project for complete my bootcamp on [Alchemy University](https://university.alchemy.com/).
+This is my Final Project to complete my bootcamp at [Alchemy University](https://university.alchemy.com/).
 
-My idea is to create a simple login page with NFT with the followed steps:
+My idea is to create a simple login page with NFT with the following steps:
 
-- The User have to request to be added to the Whitelist
-- If the admin accept the candidation of the user, he is going to add the address inside the Whitelist contract
-- Now the user can mint the NFT to get the token to access.
+- The User has to request to be added to the Whitelist
+- If the admin accepts the request of the user, he is going to add the address inside the Whitelist contract
+- Now the user can mint the NFT to get the token to website.
 
-The User address is saved on a Google Sheet file, the admin have to insert manually inside the Whitelist contract throught Etherscan write contract functions.
-When the User try to mint the NFT, the Login NFT contract is going to communicate with the Whitelist contract to check if the User can mint.
+The User address is saved on a Google Sheet file, the admin has to insert it manually inside the Whitelist contract through write contract functions on Etherscan.
+When the User tries to mint the NFT, the Login NFT contract is going to communicate with the Whitelist contract to check if the User can mint.
 
 ## Getting Started
 
@@ -34,11 +34,11 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 ### Compile .env file
 
-- `NEXT_PUBLIC_NETWORK_CHAINID` and `NEXT_PUBLIC_NETWORK_CHAINNAME` are used to front-end check for verify if the User is used the right chain
+- `NEXT_PUBLIC_NETWORK_CHAINID` and `NEXT_PUBLIC_NETWORK_CHAINNAME` are used to front-end check to verify if the User is using the right chain
 - `PRIVATE_KEY` is your MetaMask private key ([here](https://support.metamask.io/hc/en-us/articles/360015289632-How-to-export-an-account-s-private-key) a guide to see how to export the key)
-- `NETWORK_RPC` RPC link to connect to the chain, you can get free subscribe on [Alchemy](https://alchemy.com)
-- `JWT_SECRET` is a random string used as secret for the JWT
-- `ETHERSCAN_KEY` is an apikey created on Etherscan for validate the contracts
+- `NETWORK_RPC` RPC link to connect to the chain, you can get a free subscription on [Alchemy](https://alchemy.com)
+- `JWT_SECRET` is a random string used as the secret for the JWT
+- `ETHERSCAN_KEY` is the API key created on Etherscan to validate the contracts
 
 ### Create and config the Google Sheets file to store addresses
 
@@ -49,7 +49,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 ### Deploy contracts
 
-The project was created to work on Goerli network, but with some updates you can move on Mainnet Chain.
+The project was created to work on the Goerli network, but with some updates, you can move to Mainnet Chain.
 
 Deploy the contracts with the command:
 
