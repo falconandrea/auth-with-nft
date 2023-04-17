@@ -1,8 +1,6 @@
 const ethers = require('ethers')
 const jwt = require('jsonwebtoken')
 
-// const provider = new ethers.providers.JsonRpcProvider(process.env.ALCHEMY_URL)
-
 export default async function handler (req, res) {
   const { message, signature } = req.body
 
