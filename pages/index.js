@@ -8,7 +8,6 @@ import { truncateAddress, checkNFT, checkWL, checkRequestWL, requestWL, generate
 export default function Home () {
   const [currentAccount, setCurrentAccount] = useState('')
   const [signer, setSigner] = useState(null)
-  const [chainId, setChainId] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
   const [requestPending, setRequestPending] = useState(false)
@@ -31,7 +30,6 @@ export default function Home () {
         break
       }
       case 'account': setCurrentAccount(data); break
-      case 'chain': setChainId(data); break
       case 'signer': setSigner(data); break
       case 'buttons': setShowButtons(data); break
       case 'loading': setShowLoading(data); break
@@ -56,7 +54,6 @@ export default function Home () {
     })
 
     window.ethereum.on('chainChanged', function (networkId) {
-      setData('chain', networkId)
       window.location.reload()
     })
   }, [])
@@ -72,7 +69,6 @@ export default function Home () {
 
     if (networkId === parseInt(process.env.NEXT_PUBLIC_NETWORK_CHAINID)) {
       setData('buttons', true)
-      setData('chain', networkId)
 
       setData('loading', true)
       let factory = new ethers.Contract(process.env.NEXT_PUBLIC_LOGIN_NFT_ADDRESS, Login.abi, signerAccount)
@@ -158,8 +154,12 @@ export default function Home () {
         setData('success', 'NFT minted successfully')
       })
     } catch (error) {
-      console.log(error)
-      setData('error', 'Problem during mint')
+      setData('loading', false)
+      if (error.message.includes('user rejected transaction')) {
+        setData('error', 'Transaction rejected')
+      } else {
+        setData('error', 'Problem during mint')
+      }
     }
   }
 
