@@ -1,3 +1,7 @@
+<a href="https://trackgit.com">
+<img src="https://us-central1-trackgit-analytics.cloudfunctions.net/token/ping/ljptu9qvf5l41w01fzlj" alt="trackgit-views" />
+</a>
+
 # Auth with NFT
 
 ## Info about the project
