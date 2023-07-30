@@ -1,8 +1,8 @@
 import Head from 'next/head'
 import { ethers } from 'ethers'
 import { useEffect, useState } from 'react'
-import Whitelist from '@/artifacts/contracts/Whitelist.sol/Whitelist.json'
-import Login from '@/artifacts/contracts/Login.sol/Login.json'
+import Whitelist from '@/abi/Whitelist.json'
+import Login from '@/abi/Login.json'
 import { truncateAddress, checkNFT, checkWL, checkRequestWL, requestWL, generateSignMessage, loginJWT, checkJWT } from '@/utils/functions'
 
 export default function Home () {
