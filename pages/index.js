@@ -290,6 +290,7 @@ export default function Home () {
                         <p className='text-sm'>This project wants to implement a simple login via NFT.<br /><br />
                           The user can mint his NFT in order to join the community.<br /><br />In order to mint NFT, you must first be admitted to the whitelist. So the user will first need to request that his wallet address be whitelisted.
                         </p>
+                        <p className='text-sm'><u>If you request to access to the Whitelist, send me a mail to <a href="mailto:falcon.andrea88@gmail.com" title="" className='underline' target='_blank' rel='noreferrer'>falcon.andrea88@gmail.com</a> with your wallet and I'm going to add it to the contract.</u></p>
                       </div>
                     </div>
                   </div>

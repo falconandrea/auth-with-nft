@@ -19,9 +19,9 @@ When the User tries to mint the NFT, the Login NFT contract is going to communic
 
 ## Deployed Demo
 
-Demo: [here](https://auth-with-nft.vercel.app/)
+Demo: [here](https://auth-with-nft.netlify.app/)
 
-If you request to access to the Whitelist, send me a mail to [falcon.andrea88@gmail.com](mailto:falcon.andrea88@gmail.com) with your wallet and I'm going to add it to the contract.
+**If you request to access to the Whitelist, send me a mail to [falcon.andrea88@gmail.com](mailto:falcon.andrea88@gmail.com) with your wallet and I'm going to add it to the contract.**
 
 Contract Whitelist: [here](https://goerli.etherscan.io/address/0x2B7c83f10621f127c88caa0Cd69a1F27a429fec3)
 
